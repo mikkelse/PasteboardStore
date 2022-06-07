@@ -16,8 +16,18 @@ public struct Payload: Codable {
     /// The date of when the payload was created.
     public let date: Date
 
-    /// The link leading back to the app that created the payload.
-    public let backLink: URL
+    /// An optional link leading back to the app that created the payload.
+    public let backlink: URL?
+
+    /// Initialize the payload with the given values.
+    /// - parameter data: The data of the payload.
+    /// - parameter date: The date the payload was created. Defaults to Date().
+    /// - parameter backlink: An optional link leading back to the app that created the payload. Defaults to nil.
+    public init(data: Data, date: Date = Date(), backlink: URL? = nil) {
+        self.data = data
+        self.date = date
+        self.backlink = backlink
+    }
 }
 
 extension Payload {

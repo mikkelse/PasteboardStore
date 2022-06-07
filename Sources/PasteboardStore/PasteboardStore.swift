@@ -13,13 +13,13 @@ public struct PasteboardStore {
 
     public enum Error: Swift.Error { case internalError(String) }
 
-    /// Initialize the store with the given identifer. 
+    /// The identifier to use for referenceing the payload in the pasteboard.
+    public let identifier: String
+
+    /// Initialize the store with the given identifer.
     public init(identifier: String) {
         self.identifier = identifier
     }
-
-    /// The identifier to use for referenceing the payload in the pasteboard.
-    public let identifier: String
 
     /// Read a payload associated with the store's identifier in the pasteboard.
     /// - returns nil if no payload was found associated with the given identifier
