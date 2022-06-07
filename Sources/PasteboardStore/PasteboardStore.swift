@@ -13,6 +13,8 @@ public struct PasteboardStore {
 
     public enum Error: Swift.Error { case internalError(String) }
 
+    public init() {}
+
     /// The identifier to use for referenceing the payload in the pasteboard.
     public let identifier: String
 
