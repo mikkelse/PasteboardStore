@@ -6,7 +6,7 @@ The payload is encoded into JSON data and then base64 encoded into a string set 
 
 This allows for limited short term sharing of a data between apps, to facility "over the app store" installs for example. 
 
-##Example use##
+## Example use
 
 ````Swift
 // Create some data,
