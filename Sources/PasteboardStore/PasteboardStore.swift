@@ -9,9 +9,7 @@ import Foundation
 import UIKit
 
 /// A type that can read and write a payload to the pasteboard.
-public struct PasteboardStore {
-
-    public enum Error: Swift.Error { case internalError(String) }
+public struct PasteboardStore<P: Codable> {
 
     /// The identifier to use for referenceing the payload in the pasteboard.
     public let identifier: String
@@ -24,64 +22,55 @@ public struct PasteboardStore {
     /// Read a payload associated with the store's identifier in the pasteboard.
     /// - returns nil if no payload was found associated with the given identifier
     /// - throws if a payload was found, but there was an issue de-serializing it from the pasteboard.
-    public func readPayload() throws -> Payload? {
+    public func readPayload() throws -> P? {
         return try PasteboardStore.readPayload(for: identifier)
     }
 
     /// Write a payload to the pasteboard, associating it with the store's identifier.
     /// - throws if there was an issue writing the payload to the pasteboard.
-    public func writePayload(_ payload: Payload) throws {
+    public func writePayload(_ payload: P) throws {
         try PasteboardStore.write(payload, with: identifier)
     }
 
-    /// Clear the payload associated with the store's identifier from the pasteboard.
+    /// Clear the payload from the pasteboard.
     public func clearPayload() {
-        PasteboardStore.clearPayload(for: identifier)
+        PasteboardStore.clearPayload()
     }
 }
 
 extension PasteboardStore {
 
-    private static var encodedDataKey: String { "ed" }
-
-    private static func data(from url: URL, with identifier: String) -> Data? {
-        guard
-            let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-            components.host == identifier,
-            let encodedString = (components.queryItems?.first { $0.name == encodedDataKey}?.value )
-        else { return nil }
-        return Data.init(base64Encoded: encodedString)
+    private static func write(_ payload: P, with identifier: String) throws {
+        let base64Payload = try payload.toData().base64EncodedString()
+        UIPasteboard.general.string = "\(base64Payload).\(identifier)"
     }
 
-    private static func url(with data: Data, identifier: String) -> URL? {
-        let base64Encoded = data.base64EncodedString()
-        var components = URLComponents()
-        components.host = identifier
-        components.queryItems = [URLQueryItem(name: encodedDataKey, value: base64Encoded)]
-        return components.url
+    private static func readPayload(for identifier: String) throws -> P? {
+        guard
+            let content = UIPasteboard.general.string, content.contains(identifier),
+            let encodedPayload = content.components(separatedBy: ".").first,
+            let data = Data.init(base64Encoded: encodedPayload)
+        else { return nil }
+        return try P(from: data)
+    }
+
+    private static func clearPayload() {
+        UIPasteboard.general.string = ""
     }
 }
 
-extension PasteboardStore {
+extension Encodable {
 
-    private static func write(_ payload: Payload, with identifier: String) throws {
-        guard let url = url(with: try payload.toData(), identifier: identifier) else {
-            let message = "Failed to create pasteboard url from payload: \(payload), identifier: \(identifier)"
-            throw Error.internalError(message)
-        }
-        UIPasteboard.general.urls = [url]
+    func toData() throws -> Data {
+        let encoder = JSONEncoder.init()
+        return try encoder.encode(self)
     }
+}
 
-    private static func readPayload(for identifier: String) throws -> Payload? {
-        guard
-            let pasteboardUrls = UIPasteboard.general.urls,
-            let data = (pasteboardUrls.compactMap { data(from: $0, with: identifier) }).first
-        else { return nil }
-        return try Payload(from: data)
-    }
+extension Decodable {
 
-    private static func clearPayload(for identifier: String) {
-        let urls = UIPasteboard.general.urls?.filter{ $0.host != identifier }
-        UIPasteboard.general.urls = urls
+    init(from data: Data) throws {
+        let decoder = JSONDecoder.init()
+        self = try decoder.decode(Self.self, from: data)
     }
 }
